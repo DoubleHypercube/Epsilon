@@ -1,0 +1,72 @@
+newline     [01 00]
+halt        [01 01]
+wait        [01 02]
+delay       [01 03 byte]
+
+store8      [02 07 $byte byte $byte]
+store16     [02 08 $byte short $byte]
+store32     [02 09 $byte addr $byte]
+store64     [02 0E $byte long]
+copy8       [02 0A $byte $byte $byte $byte]
+copy16      [02 0B $byte $byte $byte $byte]
+copy32      [02 0C $byte $byte $byte $byte]
+copy64      [02 0D $byte $byte]
+load        [02 0F $byte $byte]
+add8        [02 10 $byte byte $byte]
+add16       [02 11 $byte short $byte]
+add32       [02 12 $byte int $byte]
+add64       [02 05 $byte long]
+sub8        [02 13 $byte byte $byte]
+sub16       [02 14 $byte short $byte]
+sub32       [02 15 $byte int $byte]
+sub64       [02 06 $byte long]
+
+jump        [03 00 addr]
+jumpeq      [03 01 $byte long addr]
+jumpne      [03 02 $byte long addr]
+jumplt      [03 03 $byte long addr]
+jumpgt      [03 04 $byte long addr]
+jsr         [03 05 addr]
+jsreq       [03 06 $byte long addr]
+jsrne       [03 07 $byte long addr]
+jsrlt       [03 08 $byte long addr]
+jsrgt       [03 09 $byte long addr]
+ret         [03 0A]
+jumple      [03 0B $byte long addr]
+jumpge      [03 0C $byte long addr]
+jsrle       [03 0D $byte long addr]
+jsrge       [03 0E $byte long addr]
+setdt       [03 0F byte readahead] ; Set Decision Text
+setda       [03 10 addr] ; Set Decision Address
+setdi       [03 11 int] ; Set Decision Index
+pdtr        [03 12 $byte $byte] ; Push Decision To Register
+
+
+debug       [00 00]
+
+rax         #FF
+eax         #FF:intl
+ax          #FF:intl:shortl
+ah          #FF:intl:shortl:byteh
+al          #FF:intl:shortl:bytel
+
+rbx         #FE
+ebx         #FE:intl
+bx          #FE:intl:shortl
+bh          #FE:intl:shortl:byteh
+bl          #FE:intl:shortl:bytel
+
+rcx         #FD
+ecx         #FD:intl
+cx          #FD:intl:shortl
+ch          #FD:intl:shortl:byteh
+cl          #FD:intl:shortl:bytel
+
+rdx         #FC
+edx         #FC:intl
+dx          #FC:intl:shortl
+dh          #FC:intl:shortl:byteh
+dl          #FC:intl:shortl:bytel
+
+testaddr       $0000FF00
+debugaddr      $CAFEBABE

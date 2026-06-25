@@ -1,0 +1,17 @@
+intro:
+    `setdi 0`
+    `setda 10`
+    `setdt 5 68 65 6C 6C 6F` ; hello
+
+    `setdi 1`
+    `setda 10`
+    `setdt 4 66 72 6F 6D` ; from
+
+    `setdi 2`
+    `setda 10`
+    `setdt 7 65 70 73 69 6C 6F 6E` ; epsilon
+
+    `setdi 3`
+    `setda 10`
+    `setdt 6 65 6E 67 69 6E 65` ; engine
+    `debug`

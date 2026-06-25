@@ -1,0 +1,21 @@
+# Internal use only
+src/main/java/gdn/hypercube/epsilon/debug/
+compiled.bin
+ControlCodes.txt
+
+# Gradle junk
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+.kotlin
+
+# IDEA stuff
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
