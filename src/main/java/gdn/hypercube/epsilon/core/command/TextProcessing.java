@@ -23,4 +23,13 @@ public class TextProcessing {
         engine.pauseTime = 0;
         engine.status = EpsilonEngine.Status.PAUSED;
     }, new Argument(Argument.Type.BYTE));
+
+    EngineCommand Colourize = new EngineCommand(EngineCommand.Type.TEXT_PROCESSING, 4, (engine, argv) -> {
+        int min = (int) argv[0].value;
+        long max = argv[1].value;
+        int colour = (int) argv[2].value;
+        for (int index = 0; index < max; index++) {
+            engine.colours.put(min + index, colour);
+        }
+    }, new Argument(Argument.Type.BYTE), new Argument(Argument.Type.BYTE), new Argument(Argument.Type.INT));
 }

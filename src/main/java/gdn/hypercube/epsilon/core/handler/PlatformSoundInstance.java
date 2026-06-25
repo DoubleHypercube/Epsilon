@@ -1,3 +1,5 @@
 package gdn.hypercube.epsilon.core.handler;
 
-public interface PlatformSoundInstance {}
+public interface PlatformSoundInstance {
+    String name();
+}

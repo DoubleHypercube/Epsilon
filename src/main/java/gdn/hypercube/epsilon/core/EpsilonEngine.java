@@ -260,7 +260,7 @@ public class EpsilonEngine {
         List<Pair<String, Integer>> targets = new ArrayList<>();
         for (int i = 0; i < text.length(); i++) {
             String there = String.valueOf(text.charAt(i));
-            int colour = colours.getOrDefault(i, Integer.MAX_VALUE);
+            int colour = colours.getOrDefault(i, -1);
             targets.add(new Pair<>(there, colour));
         }
         platform.drawText(index, targets, this.drawX, y);

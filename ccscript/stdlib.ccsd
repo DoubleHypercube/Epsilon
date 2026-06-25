@@ -2,6 +2,7 @@ newline     [01 00]
 halt        [01 01]
 wait        [01 02]
 delay       [01 03 byte]
+colourize   [01 04 byte byte int]
 
 store8      [02 07 $byte byte $byte]
 store16     [02 08 $byte short $byte]
