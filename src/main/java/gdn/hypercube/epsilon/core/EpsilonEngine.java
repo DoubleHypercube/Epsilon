@@ -91,7 +91,7 @@ public class EpsilonEngine {
     }
 
     public void loadBin(ByteBuffer buf) { // TODO: reword errors maybe?
-        if (buf.remaining() < 20) throw new BinLoadException("file too short");
+        if (buf.remaining() < 16) throw new BinLoadException("file too short");
         for (byte expected : MAGIC) if (buf.get() != expected) throw new BinLoadException("invalid magic");
         byte major = buf.get();
         byte minor = buf.get();
