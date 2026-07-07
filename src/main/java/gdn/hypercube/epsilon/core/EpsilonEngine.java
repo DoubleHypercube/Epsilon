@@ -113,6 +113,10 @@ public class EpsilonEngine {
             this.labels.put(name, baseAddress + relAddr);
         }
 
+        for (int i = 0; i < size; i++) {
+            script[end++] = buf.getChar();
+        }
+
         reset();
         this.status = Status.INACTIVE;
     }
