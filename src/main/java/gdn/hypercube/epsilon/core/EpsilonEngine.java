@@ -181,6 +181,12 @@ public class EpsilonEngine {
             return;
         }
 
+        if (jumped) {
+            jumped = false;
+        } else {
+            this.ip++;
+        }
+
         char next = this.script[this.ip];
         if (next == 0x00) {
             char upper = script[++this.ip];
@@ -210,12 +216,6 @@ public class EpsilonEngine {
             command.executor.run(this, arguments);
         } else {
             line.append(next);
-        }
-
-        if (jumped) {
-            jumped = false;
-        } else {
-            this.ip++;
         }
     }
 
