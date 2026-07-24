@@ -42,6 +42,7 @@ public class EpsilonEngine {
     public int end = 0;
     public int decindex = 0;
     private float delta = 0F;
+    public boolean dumping = false;
     private boolean jumped = false;
     public float speed = Speed.FAST;
     public Status status = Status.INACTIVE;
@@ -188,33 +189,39 @@ public class EpsilonEngine {
         }
 
         char next = this.script[this.ip];
+        if (dumping) System.out.println("Read character 0x" + String.format("%02X", (int) next) + " at IP " + this.ip);
         if (next == 0x00) {
             char upper = script[++this.ip];
             char lower = script[++this.ip];
+            if (dumping) System.out.println("Opening command [" + String.format("%02X", (int) upper) + " " + String.format("%02X", (int) lower) + "]");
 
-            EngineCommand.Type[] types = EngineCommand.Type.values();
-            EngineCommand command = EngineCommand.get(types[upper], lower);
+            try {
+                EngineCommand.Type[] types = EngineCommand.Type.values();
+                EngineCommand command = EngineCommand.get(types[upper], lower);
 
-            Argument[] arguments;
-            if (command instanceof VarargsCommand varargs) {
-                int count = varargs.readahead(this.script, this.ip);
-                arguments = new Argument[count];
-                for (int index = 0; index < count; index++) {
-                    arguments[index] = new Argument(Argument.Type.BYTE);
-                    char[] bytes = fill(1);
-                    arguments[index].set(this, index, bytes, command.literal[index % command.literal.length]);
+                Argument[] arguments;
+                if (command instanceof VarargsCommand varargs) {
+                    int count = varargs.readahead(this.script, this.ip);
+                    arguments = new Argument[count];
+                    for (int index = 0; index < count; index++) {
+                        arguments[index] = new Argument(Argument.Type.BYTE);
+                        char[] bytes = fill(1);
+                        arguments[index].set(this, index, bytes, command.literal[index % command.literal.length]);
+                    }
+                } else {
+                    arguments = new Argument[command.argv.length];
+                    for (int index = 0; index < arguments.length; index++) {
+                        arguments[index] = new Argument(command.argv[index].type);
+                        char[] bytes = fill(arguments[index].type.width);
+                        arguments[index].set(this, index, bytes, command.literal[index]);
+                    }
                 }
-            } else {
-                arguments = new Argument[command.argv.length];
-                for (int index = 0; index < arguments.length; index++) {
-                    arguments[index] = new Argument(command.argv[index].type);
-                    char[] bytes = fill(arguments[index].type.width);
-                    arguments[index].set(this, index, bytes, command.literal[index]);
-                }
+
+                command.executor.run(this, arguments);
+            } catch (IndexOutOfBoundsException ignored) {
+                System.out.println("WARNING: Attempted to execute unknown command [" + String.format("%02X", (int) upper) + " " + String.format("%02X", (int) lower) + "]!");
             }
-
-            command.executor.run(this, arguments);
-        } else {
+        } else if (next != 0xFF) {
             line.append(next);
         }
     }
@@ -272,14 +279,19 @@ public class EpsilonEngine {
         colours.clear();
     }
 
-    private void reset() {
+    public void reset() {
+        this.decindex = 0;
+        this.decisions.clear();
         rendered.clear();
         line.setLength(0);
+        line.trimToSize();
         colours.clear();
     }
 
     private char next() {
-        return this.script[++this.ip];
+        char there = this.script[++this.ip];
+        if (dumping) System.out.println("Read character 0x" + String.format("%02X", (int) there) + " at IP " + this.ip);
+        return there;
     }
 
     private char[] fill(int length) {

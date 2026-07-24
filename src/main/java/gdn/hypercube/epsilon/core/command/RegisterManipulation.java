@@ -5,7 +5,7 @@ import gdn.hypercube.epsilon.core.util.Argument;
 import gdn.hypercube.epsilon.core.util.MemoryHelper;
 
 @SuppressWarnings("unused")
-public class RegisterManipulation {
+public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length operand
     EngineCommand ToggleRegisterRead = new EngineCommand(
         EngineCommand.Type.REGISTER_MANIPULATION, 0x00,
         (engine, argv) -> {
@@ -19,8 +19,8 @@ public class RegisterManipulation {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x07,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int offset = (int) argv[2].value;
-            MemoryHelper.writeByteAt(engine.memory, base, offset, argv[1].value);
+            int offset = (int) argv[1].value;
+            MemoryHelper.writeByteAt(engine.memory, base, offset, argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -31,8 +31,8 @@ public class RegisterManipulation {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x08,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int half = (int) argv[2].value;
-            MemoryHelper.writeShortAt(engine.memory, base, half, argv[1].value);
+            int half = (int) argv[1].value;
+            MemoryHelper.writeShortAt(engine.memory, base, half, argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.SHORT),
@@ -43,8 +43,8 @@ public class RegisterManipulation {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x09,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int word = (int) argv[2].value;
-            MemoryHelper.writeIntAt(engine.memory, base, word, argv[1].value);
+            int word = (int) argv[1].value;
+            MemoryHelper.writeIntAt(engine.memory, base, word, argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.INT),

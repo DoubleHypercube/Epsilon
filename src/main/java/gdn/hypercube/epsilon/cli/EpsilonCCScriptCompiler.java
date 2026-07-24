@@ -144,7 +144,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         }
 
         int absoluteWordIndex() {
-            return this.offsets.middle();
+            return this.offsets.left();
         }
 
         String name() {
@@ -180,6 +180,8 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             return size;
         }
     }
+
+    @Desugar record PairSlot(int argIndex, int registerNumber, int offsetValue, int tokensConsumed) {}
 
     @Option(names = {"--verbose", "-v"}, description = "Verbose output") private boolean verbose;
     @Option(names = {"--scratch-stats", "-s"}, description = "Print scratch register allocation statistics") private boolean scratches;
@@ -244,12 +246,12 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         System.out.println("Loaded " + commands.size() + " command(s), " + registers.size() + " register alias(es).\n");
 
         try {
-            scanRegisterReferences();
+            scan();
         } catch (IOException exception) {
             System.err.println("error: failed to scan register references: " + exception.getMessage());
             return EX_IOERR;
         }
-        buildScratchPool();
+        rebuild();
         System.out.println("Scratch pool: " + pool.size() + " register(s) available.\n");
 
         Map<String, Integer> labels = new LinkedHashMap<>();
@@ -361,7 +363,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (contents.isEmpty()) continue;
 
             if (contents.contains("#")) {
-                parseRegisterDef(contents, ctx);
+                parse(contents, ctx);
                 continue;
             }
 
@@ -422,7 +424,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         };
     }
 
-    private void parseRegisterDef(String line, String ctx) {
+    private void parse(String line, String ctx) {
         int start = line.indexOf('#');
         String name = line.substring(0, start).trim();
         String spec = line.substring(start + 1).trim();
@@ -462,7 +464,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         }
     }
 
-    private void scanRegisterReferences() throws IOException {
+    private void scan() throws IOException {
         for (RegisterRef ref : registers.values()) references.add(ref.register);
         references.addAll(excludes);
 
@@ -474,7 +476,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
                     if (line.charAt(pos) == '`') {
                         int close = line.indexOf('`', pos + 1);
                         if (close == -1) break;
-                        scanCallForRegisters(line.substring(pos + 1, close).trim());
+                        scan(line.substring(pos + 1, close).trim());
                         pos = close + 1;
                     } else pos++;
                 }
@@ -482,7 +484,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         }
     }
 
-    private void scanCallForRegisters(String call) {
+    private void scan(String call) {
         String[] parts = call.split("\\s+");
         for (int index = 1; index < parts.length; index++) {
             String arg = parts[index];
@@ -496,7 +498,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         }
     }
 
-    private void buildScratchPool() {
+    private void rebuild() {
         for (int i = 0xFF; i >= 0; i--) {
             if (!references.contains(i)) pool.add(i);
         }
@@ -504,13 +506,13 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         if (verbose) System.out.println("Referenced registers: " + references.size() + ", scratch available: " + pool.size());
     }
 
-    private List<Integer> allocateScratch(int count, String ctx) {
+    private List<Integer> alloc(int count, String ctx) {
         if (count > pool.size()) throw new CompilerException(ctx + ": not enough scratch registers (need " + count + ", have " + pool.size() + "). Use --scratch-hint to free registers.");
         depth = Math.max(depth, count);
         return new ArrayList<>(pool.subList(0, count));
     }
 
-    private RegisterRef resolveRegister(String token) {
+    private RegisterRef resolve(String token) {
         if (!token.startsWith("$")) return null;
         String ref = token.substring(1);
         if (registers.containsKey(ref)) return registers.get(ref);
@@ -519,7 +521,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         return null;
     }
 
-    private void checkRegisterWidth(RegisterRef ref, ArgType type, String token, String ctx) {
+    private void width(RegisterRef ref, ArgType type, String token, String ctx) {
         int expected = type.expectedRegisterWidth();
         int actual = ref.width();
 
@@ -537,6 +539,76 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         }
 
         throw new CompilerException(ctx + ": type mismatch: '" + token + "' is a" + ref.name() + " register but argument expects " + expected + " byte(s)." + " Use a register of the correct width.");
+    }
+
+    private List<PairSlot> resolve(CommandDef command, String[] parts, String ctx) {
+        List<PairSlot> slots = new ArrayList<>();
+        ArgType[] args = command.args;
+
+        int idx = 0;
+        int part = 1;
+        while (idx < args.length) {
+            ArgType type = args[idx];
+            if (type == ArgType.READAHEAD) break;
+
+            if (type != ArgType.LITERAL_BYTE) {
+                idx++;
+                part++;
+                continue;
+            }
+
+            int start = idx, end = idx;
+            while (end < args.length && args[end] == ArgType.LITERAL_BYTE) end++;
+            int length = end - start;
+
+            if (length == 1) {
+                idx = end;
+                part++;
+                continue;
+            }
+
+            if (length % 2 != 0) throw new CompilerException(
+                ctx + ": command '" + command.name + "' has an odd-length run of " + length + " '$byte' argument(s) starting at position " + (start + 1) + "; register/offset pairs must come in twos"
+            );
+
+            for (int pair = start; pair < end; pair += 2) {
+                if (part >= parts.length) throw new CompilerException(ctx + ": too few arguments for '" + command.name + "'");
+                String token = parts[part];
+
+                RegisterRef shorthand = resolve(token);
+                if (shorthand != null && shorthand.isSubRegister()) {
+                    int value = shorthand.literal();
+                    int max = (EpsilonEngine.REGISTER_WIDTH / shorthand.width()) - 1;
+                    if (value < 0 || value > max) throw new CompilerException(
+                        ctx + ": '" + token + "' is a" + shorthand.name() + " register but its offset (" + value + ") within its parent is out of range (expected 0 - " + max + "); check its register definition"
+                    );
+                    slots.add(new PairSlot(pair, shorthand.register(), value, 1));
+                    part += 1;
+                } else {
+                    if (part + 1 >= parts.length) throw new CompilerException(ctx + ": too few arguments for '" + command.name + "'" + " (expected a register and an offset)");
+                    int register = (shorthand != null) ? shorthand.register() : parse(token, ctx, "register");
+                    token = parts[part + 1];
+                    int value = parse(token, ctx, "offset");
+                    slots.add(new PairSlot(pair, register, value, 2));
+                    part += 2;
+                }
+            }
+
+            idx = end;
+        }
+
+        return slots;
+    }
+
+    private int parse(String token, String ctx, String what) {
+        String raw = token.startsWith("$") ? token.substring(1) : token;
+        try {
+            int value = Integer.parseInt(raw, 16);
+            if (value < 0 || value > 0xFF) throw new NumberFormatException();
+            return value;
+        } catch (NumberFormatException exception) {
+            throw new CompilerException(ctx + ": expected a hex " + what + " byte, got '" + token + "'");
+        }
     }
 
     private int preprocess(Path file, Map<String, Integer> labels, int offset) throws IOException {
@@ -558,12 +630,12 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
                 continue;
             }
 
-            offset += measureLine(contents, line, file);
+            offset += measure(contents, line, file);
         }
         return offset;
     }
 
-    private int measureLine(String line, int lineNo, Path file) {
+    private int measure(String line, int lineNo, Path file) {
         int size = 0;
         int index = 0;
         String ctx = file + ":" + lineNo;
@@ -572,7 +644,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (line.charAt(index) == '`') {
                 int close = line.indexOf('`', index + 1);
                 if (close == -1) throw new CompilerException(ctx + ": unclosed backtick");
-                size += measureCall(line.substring(index + 1, close).trim(), ctx);
+                size += measure(line.substring(index + 1, close).trim(), ctx);
                 index = close + 1;
             } else {
                 size++;
@@ -587,31 +659,89 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         return ref.literal() != EpsilonEngine.REGISTER_WIDTH || ref.width() > type.width;
     }
 
-    private int scratchCopySize(RegisterRef ref) {
+    private int size(RegisterRef ref) {
         return (ref.width() == 4) ? 5 : 7;
     }
 
     // everything is at least 3 overhead; arguments are +(width) overhead.
-    private int measureCall(String call, String ctx) {
+    @Desugar record TokenMap(Map<Integer, Integer> argToPart, int next) {}
+
+    private TokenMap map(CommandDef command, String[] parts, String ctx) {
+        Map<Integer, Integer> map = new LinkedHashMap<>();
+        ArgType[] args = command.args;
+
+        int idx = 0;
+        int part = 1;
+        while (idx < args.length) {
+            ArgType type = args[idx];
+            if (type == ArgType.READAHEAD) break;
+
+            if (type != ArgType.LITERAL_BYTE) {
+                map.put(idx, part);
+                idx++;
+                part++;
+                continue;
+            }
+
+            int start = idx; int end = idx;
+            while (end < args.length && args[end] == ArgType.LITERAL_BYTE) end++;
+            int length = end - start;
+
+            if (length == 1) {
+                map.put(start, part);
+                idx = end;
+                part++;
+                continue;
+            }
+
+            for (int pair = start; pair < end; pair += 2) {
+                if (part >= parts.length) {
+                    map.put(pair, part);
+                    map.put(pair + 1, part);
+                    part++;
+                    continue;
+                }
+                String token = parts[part];
+                RegisterRef shorthand = resolve(token);
+                boolean isShorthand = shorthand != null && shorthand.isSubRegister();
+
+                map.put(pair, part);
+                map.put(pair + 1, part + (isShorthand ? 0 : 1));
+                part += isShorthand ? 1 : 2;
+            }
+
+            idx = end;
+        }
+
+        return new TokenMap(map, part);
+    }
+
+    private int measure(String call, String ctx) {
         String[] parts = call.split("\\s+");
         CommandDef command = commands.get(parts[0]);
         if (command == null) throw new CompilerException(ctx + ": unknown command '" + parts[0] + "'");
 
-        int scratchOverhead = 0;
-        int toggleOverhead  = 0;
+        resolve(command, parts, ctx);
+        TokenMap tokenMap = map(command, parts, ctx);
 
-        for (int index = 0; index < command.args.length && index + 1 < parts.length; index++) {
+        int scratch = 0;
+        int toggle = 0;
+
+        for (int index = 0; index < command.args.length; index++) {
             ArgType type = command.args[index];
             if (type == ArgType.READAHEAD) break;
             if (type.literal) continue;
 
-            String token = parts[index + 1];
-            RegisterRef ref = resolveRegister(token);
+            Integer part = tokenMap.argToPart().get(index);
+            if (part == null || part >= parts.length) continue;
+
+            String token = parts[part];
+            RegisterRef ref = resolve(token);
 
             if (ref != null) {
-                toggleOverhead += 8; // [02 00 XX] pair, each 4 chars
+                toggle += 8; // [02 00 XX] pair, each 4 chars
                 if (ref.isSubRegister() && needsScratch(ref, type)) {
-                    scratchOverhead += scratchCopySize(ref);
+                    scratch += size(ref);
                 }
             }
         }
@@ -620,15 +750,15 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             int arguments = command.args.length - 1;
             int bytes = 0;
             for (int index = 0; index < arguments; index++) bytes += command.args[index].width;
-            int readaheads = parts.length - 1 - arguments;
+            int readaheads = parts.length - tokenMap.next();
             if (readaheads < 0) throw new CompilerException(ctx + ": too few arguments for '" + parts[0] + "'");
-            return scratchOverhead
-                    + toggleOverhead + 1
-                    + command.opcode.length
-                    + bytes + readaheads;
+            return scratch
+                + toggle + 1
+                + command.opcode.length
+                + bytes + readaheads;
         }
 
-        return scratchOverhead + toggleOverhead + command.fixedSize();
+        return scratch + toggle + command.fixedSize();
     }
 
     private void compile(Path file, Map<String, Integer> labels, StringBuilder out) throws IOException {
@@ -643,11 +773,11 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (line.isEmpty()) continue;
             if (isLabel(line)) continue;
 
-            emitLine(line, there, file, labels, out);
+            emit(line, there, file, labels, out);
         }
     }
 
-    private void emitLine(String line, int number, Path file, Map<String, Integer> labels, StringBuilder out) {
+    private void emit(String line, int number, Path file, Map<String, Integer> labels, StringBuilder out) {
         int index = 0;
         String ctx = file + ":" + number;
 
@@ -655,7 +785,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (line.charAt(index) == '`') {
                 int close = line.indexOf('`', index + 1);
                 if (close == -1) throw new CompilerException(ctx + ": unclosed backtick");
-                emitCall(line.substring(index + 1, close).trim(), ctx, labels, out);
+                emit(line.substring(index + 1, close).trim(), ctx, labels, out);
                 index = close + 1;
             } else {
                 out.append(line.charAt(index));
@@ -664,20 +794,34 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
         }
     }
 
-    private void emitCall(String call, String ctx, Map<String, Integer> labels, StringBuilder out) {
+    private void emit(String call, String ctx, Map<String, Integer> labels, StringBuilder out) {
         String[] parts = call.split("\\s+");
         String name = parts[0];
         CommandDef command = commands.get(name);
+
+        if (verbose) System.out.println("Emitting call for command: " + command.name);
         if (command == null) throw new CompilerException(ctx + ": unknown command '" + name + "'");
 
-        RegisterRef[] regs = new RegisterRef[command.args.length];
-        for (int index = 0; index < command.args.length && index + 1 < parts.length; index++) {
-            ArgType argType = command.args[index];
-            if (argType == ArgType.READAHEAD) break;
+        List<PairSlot> pairSlots = resolve(command, parts, ctx);
+        Map<Integer, PairSlot> pairByArgIndex = new LinkedHashMap<>();
+        for (PairSlot slot : pairSlots) {
+            pairByArgIndex.put(slot.argIndex(), slot);
+            pairByArgIndex.put(slot.argIndex() + 1, slot);
+        }
+        TokenMap tokens = map(command, parts, ctx);
 
-            String token = parts[index + 1];
-            RegisterRef ref = resolveRegister(token);
-            if (ref != null && !argType.literal) checkRegisterWidth(ref, argType, token, ctx);
+        RegisterRef[] regs = new RegisterRef[command.args.length];
+        for (int index = 0; index < command.args.length; index++) {
+            ArgType type = command.args[index];
+            if (type == ArgType.READAHEAD) break;
+            if (type == ArgType.LITERAL_BYTE && pairByArgIndex.containsKey(index)) continue;
+
+            Integer partIndex = tokens.argToPart().get(index);
+            if (partIndex == null || partIndex >= parts.length) continue;
+
+            String token = parts[partIndex];
+            RegisterRef ref = resolve(token);
+            if (ref != null && !type.literal) width(ref, type, token, ctx);
 
             regs[index] = ref;
         }
@@ -690,8 +834,8 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             && needsScratch(regs[index], command.args[index])
         ) subreads.add(index);
 
-        List<Integer> allocated = allocateScratch(subreads.size(), ctx);
-        Map<Integer, Integer> targets   = new LinkedHashMap<>();
+        List<Integer> allocated = alloc(subreads.size(), ctx);
+        Map<Integer, Integer> targets = new LinkedHashMap<>();
         for (int index = 0; index < subreads.size(); index++) targets.put(subreads.get(index), allocated.get(index));
 
         for (int index : subreads) {
@@ -700,11 +844,11 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (ref.width() <= 2) {
                 try {
                     Method method = RegisterRef.class.getMethod("absolute" + (ref.width() == 1 ? "Byte" : "Half") + "Index");
-                    emitRaw(new int[]{0x00, 0x02, 0x09 + ref.width(), ref.register, (int) method.invoke(ref), scratch, 0x00}, out);
+                    emit(new int[]{0x00, 0x02, 0x09 + ref.width(), ref.register, (int) method.invoke(ref), scratch, 0x00}, out);
                 } catch (ReflectiveOperationException exception) {
                     throw new CompilerException(ctx + ": failed to reflectively invoke scratch allocaion");
                 }
-            } else emitRaw(new int[]{0x00, 0x02, 0x0C, ref.register, scratch}, out);
+            } else emit(new int[]{0x00, 0x02, 0x0C, ref.register, scratch}, out);
         }
 
         for (int index = 0; index < regs.length; index++) {
@@ -712,29 +856,43 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (type.literal) continue;
             if (type == ArgType.READAHEAD) break;
             if (regs[index] == null) continue;
-            emitRaw(new int[]{0x00, 0x02, 0x00, index}, out);
+            emit(new int[]{0x00, 0x02, 0x00, index}, out);
         }
 
         out.append((char) 0x00);
         for (byte that : command.opcode) out.append((char) (that & 0xFF));
 
         if (command.varargs) {
-            int fixedCount = command.args.length - 1;
-            for (int index = 0; index < fixedCount; index++) {
-                if (index + 1 >= parts.length) throw new CompilerException(ctx + ": too few arguments for '" + name + "'");
-                emitArgValue(parts[index + 1], command.args[index], regs[index], targets.getOrDefault(index, -1), labels, ctx, out);
+            int count = command.args.length - 1;
+            for (int index = 0; index < count; index++) {
+                ArgType type = command.args[index];
+                PairSlot slot = pairByArgIndex.get(index);
+                if (type == ArgType.LITERAL_BYTE && slot != null) {
+                    out.append((char) (index == slot.argIndex() ? slot.registerNumber() : slot.offsetValue()));
+                    continue;
+                }
+                Integer part = tokens.argToPart().get(index);
+                if (part == null || part >= parts.length) throw new CompilerException(ctx + ": too few arguments for '" + name + "'");
+                emit(parts[part], type, regs[index], targets.getOrDefault(index, -1), labels, ctx, out);
             }
 
-            for (int index = fixedCount + 1; index < parts.length; index++) {
+            for (int index = tokens.next(); index < parts.length; index++) {
                 if (!parts[index].matches("[0-9A-Fa-f]{2}")) throw new CompilerException(ctx + ": readahead argument '" + parts[index] + "' must be a hex byte");
                 out.append((char) Integer.parseInt(parts[index], 16));
             }
         } else {
             for (int index = 0; index < command.args.length; index++) {
-                if (index + 1 >= parts.length) throw new CompilerException(ctx + ": too few arguments for '" + name + "'" + " (expected " + command.args.length + ")");
-                emitArgValue(parts[index + 1], command.args[index], regs[index], targets.getOrDefault(index, -1), labels, ctx, out);
+                ArgType type = command.args[index];
+                PairSlot slot = pairByArgIndex.get(index);
+                if (type == ArgType.LITERAL_BYTE && slot != null) {
+                    out.append((char) (index == slot.argIndex() ? slot.registerNumber() : slot.offsetValue()));
+                    continue;
+                }
+                Integer partIndex = tokens.argToPart().get(index);
+                if (partIndex == null || partIndex >= parts.length) throw new CompilerException(ctx + ": too few arguments for '" + name + "'" + " (expected " + command.args.length + ")");
+                emit(parts[partIndex], type, regs[index], targets.getOrDefault(index, -1), labels, ctx, out);
             }
-            if (parts.length - 1 > command.args.length) throw new CompilerException(ctx + ": too many arguments for '" + name + "'" + " (expected " + command.args.length + ")");
+            if (parts.length > tokens.next()) throw new CompilerException(ctx + ": too many arguments for '" + name + "'" + " (expected " + command.args.length + ")");
         }
 
         for (int index = 0; index < regs.length; index++) {
@@ -742,11 +900,11 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             if (type.literal) continue;
             if (type == ArgType.READAHEAD) break;
             if (regs[index] == null) continue;
-            emitRaw(new int[]{0x00, 0x02, 0x00, index}, out);
+            emit(new int[]{0x00, 0x02, 0x00, index}, out);
         }
     }
 
-    private void emitArgValue(String token, ArgType type, RegisterRef ref, int scratchReg, Map<String, Integer> labels, String ctx, StringBuilder out) {
+    private void emit(String token, ArgType type, RegisterRef ref, int scratchReg, Map<String, Integer> labels, String ctx, StringBuilder out) {
         if (type.addr) {
             int address;
             if (labels.containsKey(token)) {
@@ -765,7 +923,7 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
                     throw new CompilerException(ctx + ": '" + token + "' is not a label, address alias," + " register reference, or hex address");
                 }
             }
-            emitInt(address, out);
+            emit(address, out);
             return;
         }
 
@@ -773,24 +931,24 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             switch (type) {
                 case LITERAL_BYTE -> out.append((char) ref.literal());
                 case LITERAL_SHORT -> out.append((char) 0x00).append((char) ref.register);
-                case LITERAL_INT -> emitInt(ref.register, out);
-                case LITERAL_LONG -> emitLong(ref.register, out);
+                case LITERAL_INT -> emit(ref.register, out);
+                case LITERAL_LONG -> this.emit((long) ref.register, out);
                 default -> out.append((char) ref.register);
             }
             return;
         }
 
         if (ref != null) {
-            int regOrScratch = (scratchReg >= 0) ? scratchReg : ref.register;
-            out.append((char) regOrScratch);
+            int there = (scratchReg >= 0) ? scratchReg : ref.register;
+            out.append((char) there);
             for (int p = 1; p < type.width; p++) out.append((char) 0x00);
             return;
         }
 
-        emitArg(token, type, ctx, out);
+        emit(token, type, ctx, out);
     }
 
-    private void emitArg(String token, ArgType type, String ctx, StringBuilder out) {
+    private void emit(String token, ArgType type, String ctx, StringBuilder out) {
         String raw = token.startsWith("$") ? token.substring(1) : token;
         long value;
         try {
@@ -814,30 +972,30 @@ public class EpsilonCCScriptCompiler implements Callable<Integer> {
             case INT:
             case LITERAL_INT:
             case ADDR:
-                emitInt((int) value, out);
+                emit((int) value, out);
                 break;
             case LONG:
             case LITERAL_LONG:
-                emitLong(value, out);
+                emit(value, out);
                 break;
             default:
-                throw new IllegalStateException(ctx + ": internal error in emitArg for type " + type);
+                throw new IllegalStateException(ctx + ": internal error in emit for type " + type);
         }
     }
 
-    private void emitInt(int value, StringBuilder out) {
+    private void emit(int value, StringBuilder out) {
         for (int index = 3; index >= 0; index--) {
             out.append((char) ((value >> 8 * index) & 0xFF));
         }
     }
 
-    private void emitLong(long value, StringBuilder out) {
+    private void emit(long value, StringBuilder out) {
         for (int index = 7; index >= 0; index--) {
             out.append((char) ((value >> 8 * index) & 0xFF));
         }
     }
 
-    private void emitRaw(int[] bytes, StringBuilder out) {
+    private void emit(int[] bytes, StringBuilder out) {
         for (int that : bytes) out.append((char) (that & 0xFF));
     }
 

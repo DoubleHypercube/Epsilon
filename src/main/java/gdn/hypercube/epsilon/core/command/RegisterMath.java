@@ -5,13 +5,13 @@ import gdn.hypercube.epsilon.core.util.EngineCommand;
 import gdn.hypercube.epsilon.core.util.MemoryHelper;
 
 @SuppressWarnings("unused")
-public class RegisterMath {
+public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
     EngineCommand Add8 = new EngineCommand(
         EngineCommand.Type.REGISTER_MANIPULATION, 0x10,
         (engine, argv) -> {
             int base   = MemoryHelper.registerBase((int) argv[0].value);
-            int offset = (int) argv[2].value;
-            long value  = (MemoryHelper.readByteAt(engine.memory, base, offset) + argv[1].value) & 0xFFL;
+            int offset = (int) argv[1].value;
+            long value  = (MemoryHelper.readByteAt(engine.memory, base, offset) + argv[2].value) & 0xFFL;
             MemoryHelper.writeByteAt(engine.memory, base, offset, value);
         },
         new Argument(Argument.Type.BYTE),
@@ -23,8 +23,8 @@ public class RegisterMath {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x11,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int half = (int) argv[2].value;
-            long value = (MemoryHelper.readShortAt(engine.memory, base, half) + argv[1].value) & 0xFFFFL;
+            int half = (int) argv[1].value;
+            long value = (MemoryHelper.readShortAt(engine.memory, base, half) + argv[2].value) & 0xFFFFL;
             MemoryHelper.writeShortAt(engine.memory, base, half, value);
         },
         new Argument(Argument.Type.BYTE),
@@ -36,8 +36,8 @@ public class RegisterMath {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x12,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int word = (int) argv[2].value;
-            long value = (MemoryHelper.readIntAt(engine.memory, base, word) + argv[1].value) & 0xFFFFFFFFL;
+            int word = (int) argv[1].value;
+            long value = (MemoryHelper.readIntAt(engine.memory, base, word) + argv[2].value) & 0xFFFFFFFFL;
             MemoryHelper.writeIntAt(engine.memory, base, word, value);
         },
         new Argument(Argument.Type.BYTE),
@@ -60,8 +60,8 @@ public class RegisterMath {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x13,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int offset = (int) argv[2].value;
-            long value = (MemoryHelper.readByteAt(engine.memory, base, offset) - argv[1].value) & 0xFFL;
+            int offset = (int) argv[1].value;
+            long value = (MemoryHelper.readByteAt(engine.memory, base, offset) - argv[2].value) & 0xFFL;
             MemoryHelper.writeByteAt(engine.memory, base, offset, value);
         },
         new Argument(Argument.Type.BYTE),
@@ -73,8 +73,8 @@ public class RegisterMath {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x14,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int half = (int) argv[2].value;
-            long value = (MemoryHelper.readShortAt(engine.memory, base, half) - argv[1].value) & 0xFFFFL;
+            int half = (int) argv[1].value;
+            long value = (MemoryHelper.readShortAt(engine.memory, base, half) - argv[2].value) & 0xFFFFL;
             MemoryHelper.writeShortAt(engine.memory, base, half, value);
         },
         new Argument(Argument.Type.BYTE),
@@ -86,8 +86,8 @@ public class RegisterMath {
         EngineCommand.Type.REGISTER_MANIPULATION, 0x15,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            int word = (int) argv[2].value;
-            long value = (MemoryHelper.readIntAt(engine.memory, base, word) - argv[1].value) & 0xFFFFFFFFL;
+            int word = (int) argv[1].value;
+            long value = (MemoryHelper.readIntAt(engine.memory, base, word) - argv[2].value) & 0xFFFFFFFFL;
             MemoryHelper.writeIntAt(engine.memory, base, word, value);
         },
         new Argument(Argument.Type.BYTE),

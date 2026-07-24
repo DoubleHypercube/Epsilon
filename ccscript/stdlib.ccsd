@@ -3,23 +3,24 @@ halt        [01 01]
 wait        [01 02]
 delay       [01 03 byte]
 colourize   [01 04 byte byte int]
+reset       [01 05]
 
-store8      [02 07 $byte byte $byte]
-store16     [02 08 $byte short $byte]
-store32     [02 09 $byte addr $byte]
+store8      [02 07 $byte $byte byte]
+store16     [02 08 $byte $byte short]
+store32     [02 09 $byte $byte addr]
 store64     [02 0E $byte long]
 copy8       [02 0A $byte $byte $byte $byte]
 copy16      [02 0B $byte $byte $byte $byte]
 copy32      [02 0C $byte $byte $byte $byte]
 copy64      [02 0D $byte $byte]
 load        [02 0F $byte $byte]
-add8        [02 10 $byte byte $byte]
-add16       [02 11 $byte short $byte]
-add32       [02 12 $byte int $byte]
+add8        [02 10 $byte $byte byte]
+add16       [02 11 $byte $byte short]
+add32       [02 12 $byte $byte int]
 add64       [02 05 $byte long]
-sub8        [02 13 $byte byte $byte]
-sub16       [02 14 $byte short $byte]
-sub32       [02 15 $byte int $byte]
+sub8        [02 13 $byte $byte byte]
+sub16       [02 14 $byte $byte short]
+sub32       [02 15 $byte $byte int]
 sub64       [02 06 $byte long]
 
 jump        [03 00 addr]
@@ -37,13 +38,13 @@ jumple      [03 0B $byte long addr]
 jumpge      [03 0C $byte long addr]
 jsrle       [03 0D $byte long addr]
 jsrge       [03 0E $byte long addr]
-setdt       [03 0F byte readahead] ; Set Decision Text
+setdt       [03 0F byte readahead] ; Set Decision Text // THIS TAKES A LENGTH PARAMETER AS THE FIRST ARGUMENT, DUMBASS
 setda       [03 10 addr] ; Set Decision Address
 setdi       [03 11 int] ; Set Decision Index
 pdtr        [03 12 $byte $byte] ; Push Decision To Register
 
-
-debug       [00 00]
+nop         [00 00]
+debug       [00 FF byte readahead]
 
 rax         #FF
 eax         #FF:intl

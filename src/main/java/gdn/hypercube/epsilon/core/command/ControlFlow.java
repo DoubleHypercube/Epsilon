@@ -8,7 +8,7 @@ import gdn.hypercube.epsilon.core.util.Pair;
 import gdn.hypercube.epsilon.core.util.VarargsCommand;
 
 @SuppressWarnings("unused")
-public class ControlFlow {
+public class ControlFlow { // TODO: Length operand prefix for conditionals
     private static long regValue(EpsilonEngine engine, long register) {
         return MemoryHelper.readLong(engine.memory, MemoryHelper.registerBase((int) register));
     }
@@ -55,8 +55,7 @@ public class ControlFlow {
             Pair<String, Integer> existing = engine.decisions.get(engine.decindex);
             if (existing == null) existing = new Pair<>("", 0);
             MemoryHelper.writeIntAt(engine.memory, MemoryHelper.registerBase((int) argv[0].value), (int) argv[1].value, existing.right());
-        },
-        new Argument(Argument.Type.BYTE)
+        }, new Argument(Argument.Type.BYTE), new Argument(Argument.Type.BYTE)
     );
 
     EngineCommand Jump = new EngineCommand(
@@ -90,8 +89,7 @@ public class ControlFlow {
     EngineCommand JumpNotEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x02,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) != argv[1].value)
-                engine.jump((int) argv[2].value);
+            if (regValue(engine, argv[0].value) != argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -101,8 +99,7 @@ public class ControlFlow {
     EngineCommand JumpLessThan = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x03,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) < argv[1].value)
-                engine.jump((int) argv[2].value);
+            if (regValue(engine, argv[0].value) < argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),

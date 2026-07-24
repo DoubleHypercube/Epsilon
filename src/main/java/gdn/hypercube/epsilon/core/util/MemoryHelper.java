@@ -3,6 +3,8 @@ package gdn.hypercube.epsilon.core.util;
 import gdn.hypercube.epsilon.core.EpsilonEngine;
 
 public final class MemoryHelper {
+    public static boolean debug = false;
+
     public static void writeByte(char[] memory, int position, long value) { memory[position] = (char) (value & 0xFF); }
     public static void writeShort(char[] memory, int position, long value) {
         memory[position] = (char) ((value >> 8) & 0xFF);
@@ -11,9 +13,17 @@ public final class MemoryHelper {
     public static void writeInt(char[] memory, int position, long value) { for (int i = 0; i < 4; i++) memory[position + i] = (char) ((value >> (24 - i * 8)) & 0xFF); }
     public static void writeLong(char[] memory, int position, long value) { for (int i = 0; i < 8; i++) memory[position + i] = (char) ((value >> (56 - i * 8)) & 0xFF); }
 
-    public static void writeByteAt(char[] memory, int base, int offset, long value) { writeByte(memory, base + offset, value); }
-    public static void writeShortAt(char[] memory, int base, int offset, long value) { writeShort(memory, base + offset * 2, value); }
-    public static void writeIntAt(char[] memory, int base, int offset, long value) { writeInt(memory, base + offset * 4, value); }
+    public static void writeByteAt(char[] memory, int base, int offset, long value) {
+        if (debug) System.out.println("writeByteAt called with values: base " + base + ", offset" + offset + ", value " + value);
+        writeByte(memory, base + offset, value);
+    }
+    public static void writeShortAt(char[] memory, int base, int offset, long value) {
+        if (debug) System.out.println("writeShortAt called with values: base " + base + ", offset" + offset + ", value " + value);
+        System.out.println("Base " + base + ", offset" + offset + ", value " + value); writeShort(memory, base + offset * 2, value); }
+    public static void writeIntAt(char[] memory, int base, int offset, long value) {
+        if (debug) System.out.println("writeByteAt called with values: base " + base + ", offset" + offset + ", value " + value);
+        writeInt(memory, base + offset * 4, value);
+    }
 
     public static long readByte(char[] memory, int position) { return memory[position] & 0xFFL; }
     public static long readShort(char[] memory, int position) { return ((memory[position] & 0xFFL) << 8) | (memory[position + 1] & 0xFFL); }
