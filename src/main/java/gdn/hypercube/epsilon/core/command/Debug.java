@@ -20,11 +20,24 @@ public class Debug {
     EngineCommand DEBUG = new VarargsCommand(EngineCommand.Type.PLAFORM_SPECIFIC, 0xFF, (engine, argv) -> {
         int flag = (int) argv[0].value;
         switch (flag) {
+            case 0xFF -> {
+                System.out.println("Dumping memory...");
+                for (int i = 0; i < engine.memory.length; i += 15) {
+                    int end = Math.min(i + 15, engine.memory.length);
+                    char[] chunk = java.util.Arrays.copyOfRange(engine.memory, i, end);
+                    for (char that : chunk) {
+                        System.out.printf("%02X ", (int) that);
+                    }
+                    System.out.println();
+                }
+            }
+
             default -> {
                 boolean toggled = !engine.debug[flag];
                 engine.debug[flag] = toggled;
                 System.out.println("Set debug flag " + Flags.values()[flag].name() + " " + toggled);
             }
+
         }
     }, chars -> switch (chars[0]) {
         default -> 1;
