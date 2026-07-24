@@ -14,4 +14,5 @@ public abstract class AbstractPlatform {
     public abstract void drawCharacter(String character, int x, int y, int colour);
     public abstract void drawText(int index, List<Pair<String, Integer>> characters, int x, int y);
     public abstract int framerate();
+    public abstract void reset();
 }

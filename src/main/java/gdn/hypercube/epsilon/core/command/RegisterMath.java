@@ -11,8 +11,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         (engine, argv) -> {
             int base   = MemoryHelper.registerBase((int) argv[0].value);
             int offset = (int) argv[1].value;
-            long value  = (MemoryHelper.readByteAt(engine.memory, base, offset) + argv[2].value) & 0xFFL;
-            MemoryHelper.writeByteAt(engine.memory, base, offset, value);
+            long value  = (MemoryHelper.readByteAt(engine, base, offset) + argv[2].value) & 0xFFL;
+            MemoryHelper.writeByteAt(engine, base, offset, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -24,8 +24,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int half = (int) argv[1].value;
-            long value = (MemoryHelper.readShortAt(engine.memory, base, half) + argv[2].value) & 0xFFFFL;
-            MemoryHelper.writeShortAt(engine.memory, base, half, value);
+            long value = (MemoryHelper.readShortAt(engine, base, half) + argv[2].value) & 0xFFFFL;
+            MemoryHelper.writeShortAt(engine, base, half, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.SHORT),
@@ -37,8 +37,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int word = (int) argv[1].value;
-            long value = (MemoryHelper.readIntAt(engine.memory, base, word) + argv[2].value) & 0xFFFFFFFFL;
-            MemoryHelper.writeIntAt(engine.memory, base, word, value);
+            long value = (MemoryHelper.readIntAt(engine, base, word) + argv[2].value) & 0xFFFFFFFFL;
+            MemoryHelper.writeIntAt(engine, base, word, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.INT),
@@ -49,8 +49,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         EngineCommand.Type.REGISTER_MANIPULATION, 0x05,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            long value = MemoryHelper.readLong(engine.memory, base) + argv[1].value;
-            MemoryHelper.writeLong(engine.memory, base, value);
+            long value = MemoryHelper.readLong(engine, base) + argv[1].value;
+            MemoryHelper.writeLong(engine, base, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG)
@@ -61,8 +61,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int offset = (int) argv[1].value;
-            long value = (MemoryHelper.readByteAt(engine.memory, base, offset) - argv[2].value) & 0xFFL;
-            MemoryHelper.writeByteAt(engine.memory, base, offset, value);
+            long value = (MemoryHelper.readByteAt(engine, base, offset) - argv[2].value) & 0xFFL;
+            MemoryHelper.writeByteAt(engine, base, offset, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -74,8 +74,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int half = (int) argv[1].value;
-            long value = (MemoryHelper.readShortAt(engine.memory, base, half) - argv[2].value) & 0xFFFFL;
-            MemoryHelper.writeShortAt(engine.memory, base, half, value);
+            long value = (MemoryHelper.readShortAt(engine, base, half) - argv[2].value) & 0xFFFFL;
+            MemoryHelper.writeShortAt(engine, base, half, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.SHORT),
@@ -87,8 +87,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int word = (int) argv[1].value;
-            long value = (MemoryHelper.readIntAt(engine.memory, base, word) - argv[2].value) & 0xFFFFFFFFL;
-            MemoryHelper.writeIntAt(engine.memory, base, word, value);
+            long value = (MemoryHelper.readIntAt(engine, base, word) - argv[2].value) & 0xFFFFFFFFL;
+            MemoryHelper.writeIntAt(engine, base, word, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.INT),
@@ -99,8 +99,8 @@ public class RegisterMath { // TODO: Replace 8/16/32/64 with a length operand
         EngineCommand.Type.REGISTER_MANIPULATION, 0x06,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            long value = MemoryHelper.readLong(engine.memory, base) - argv[1].value;
-            MemoryHelper.writeLong(engine.memory, base, value);
+            long value = MemoryHelper.readLong(engine, base) - argv[1].value;
+            MemoryHelper.writeLong(engine, base, value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG)

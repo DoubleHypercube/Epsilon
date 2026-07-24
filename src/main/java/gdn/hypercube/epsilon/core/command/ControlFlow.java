@@ -10,7 +10,7 @@ import gdn.hypercube.epsilon.core.util.VarargsCommand;
 @SuppressWarnings("unused")
 public class ControlFlow { // TODO: Length operand prefix for conditionals
     private static long regValue(EpsilonEngine engine, long register) {
-        return MemoryHelper.readLong(engine.memory, MemoryHelper.registerBase((int) register));
+        return MemoryHelper.readLong(engine, MemoryHelper.registerBase((int) register));
     }
 
     EngineCommand SetDecisionIndex = new EngineCommand(
@@ -22,6 +22,12 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand SetDecisionText = new VarargsCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x0F,
         (engine, argv) -> {
+            if (argv.length >= 20) {
+                System.out.println("!! WARNING WARNING WARNING WARNING WARNING WARNING !!");
+                System.out.println("setdt(...) called with suspiciously high length: " + (argv.length - 1) + " characters");
+                System.out.println("Did you forget the length prefix as the first argument?");
+                System.out.println("!! WARNING WARNING WARNING WARNING WARNING WARNING !!");
+            }
             char[] raw = new char[argv.length];
             for (int index = 1; index < argv.length; index++) {
                 raw[index] = (char) argv[index].value;
@@ -54,7 +60,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
         (engine, argv) -> {
             Pair<String, Integer> existing = engine.decisions.get(engine.decindex);
             if (existing == null) existing = new Pair<>("", 0);
-            MemoryHelper.writeIntAt(engine.memory, MemoryHelper.registerBase((int) argv[0].value), (int) argv[1].value, existing.right());
+            MemoryHelper.writeIntAt(engine, MemoryHelper.registerBase((int) argv[0].value), (int) argv[1].value, existing.right());
         }, new Argument(Argument.Type.BYTE), new Argument(Argument.Type.BYTE)
     );
 
@@ -78,8 +84,8 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x01,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) == argv[1].value)
-                engine.jump((int) argv[2].value);
+            if (engine.debug[2]) System.out.println("Jump Equal expected: " + regValue(engine, argv[0].value) + ", actual: " + argv[1].value);
+            if (regValue(engine, argv[0].value) == argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -89,6 +95,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpNotEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x02,
         (engine, argv) -> {
+            if (engine.debug[2]) System.out.println("Jump Not Equal expected: " + regValue(engine, argv[0].value) + ", actual: " + argv[1].value);
             if (regValue(engine, argv[0].value) != argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
@@ -109,8 +116,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpGreaterThan = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x04,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) > argv[1].value)
-                engine.jump((int) argv[2].value);
+            if (regValue(engine, argv[0].value) > argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -120,8 +126,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpLessOrEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x0B,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) <= argv[1].value)
-                engine.jump((int) argv[2].value);
+            if (regValue(engine, argv[0].value) <= argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -131,8 +136,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpGreaterOrEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x0C,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) >= argv[1].value)
-                engine.jump((int) argv[2].value);
+            if (regValue(engine, argv[0].value) >= argv[1].value) engine.jump((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -142,8 +146,8 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpSubroutineEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x06,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) == argv[1].value)
-                engine.jsr((int) argv[2].value);
+            if (engine.debug[2]) System.out.println("JSR Equal expected: " + regValue(engine, argv[0].value) + ", actual: " + argv[1].value);
+            if (regValue(engine, argv[0].value) == argv[1].value) engine.jsr((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -153,8 +157,8 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpSubroutineNotEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x07,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) != argv[1].value)
-                engine.jsr((int) argv[2].value);
+            if (engine.debug[2]) System.out.println("JSR Not Equal expected: " + regValue(engine, argv[0].value) + ", actual: " + argv[1].value);
+            if (regValue(engine, argv[0].value) != argv[1].value) engine.jsr((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -164,8 +168,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpSubroutineLessThan = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x08,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) < argv[1].value)
-                engine.jsr((int) argv[2].value);
+            if (regValue(engine, argv[0].value) < argv[1].value) engine.jsr((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -175,8 +178,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpSubroutineGreaterThan = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x09,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) > argv[1].value)
-                engine.jsr((int) argv[2].value);
+            if (regValue(engine, argv[0].value) > argv[1].value) engine.jsr((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -186,8 +188,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpSubroutineLessOrEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x0D,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) <= argv[1].value)
-                engine.jsr((int) argv[2].value);
+            if (regValue(engine, argv[0].value) <= argv[1].value) engine.jsr((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),
@@ -197,8 +198,7 @@ public class ControlFlow { // TODO: Length operand prefix for conditionals
     EngineCommand JumpSubroutineGreaterOrEqual = new EngineCommand(
         EngineCommand.Type.CONTROL_FLOW, 0x0E,
         (engine, argv) -> {
-            if (regValue(engine, argv[0].value) >= argv[1].value)
-                engine.jsr((int) argv[2].value);
+            if (regValue(engine, argv[0].value) >= argv[1].value) engine.jsr((int) argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG),

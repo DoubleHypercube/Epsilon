@@ -20,7 +20,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int offset = (int) argv[1].value;
-            MemoryHelper.writeByteAt(engine.memory, base, offset, argv[2].value);
+            MemoryHelper.writeByteAt(engine, base, offset, argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -32,7 +32,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int half = (int) argv[1].value;
-            MemoryHelper.writeShortAt(engine.memory, base, half, argv[2].value);
+            MemoryHelper.writeShortAt(engine, base, half, argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.SHORT),
@@ -44,7 +44,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int word = (int) argv[1].value;
-            MemoryHelper.writeIntAt(engine.memory, base, word, argv[2].value);
+            MemoryHelper.writeIntAt(engine, base, word, argv[2].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.INT),
@@ -55,7 +55,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         EngineCommand.Type.REGISTER_MANIPULATION, 0x0E,
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
-            MemoryHelper.writeLong(engine.memory, base, argv[1].value);
+            MemoryHelper.writeLong(engine, base, argv[1].value);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.LONG)
@@ -66,7 +66,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int srcBase = MemoryHelper.registerBase((int) argv[0].value);
             int dstBase = MemoryHelper.registerBase((int) argv[2].value);
-            MemoryHelper.writeByteAt(engine.memory, dstBase, (int) argv[3].value, MemoryHelper.readByteAt(engine.memory, srcBase, (int) argv[1].value));
+            MemoryHelper.writeByteAt(engine, dstBase, (int) argv[3].value, MemoryHelper.readByteAt(engine, srcBase, (int) argv[1].value));
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -79,7 +79,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int srcBase = MemoryHelper.registerBase((int) argv[0].value);
             int dstBase = MemoryHelper.registerBase((int) argv[2].value);
-            MemoryHelper.writeShortAt(engine.memory, dstBase, (int) argv[3].value, MemoryHelper.readShortAt(engine.memory, srcBase, (int) argv[1].value));
+            MemoryHelper.writeShortAt(engine, dstBase, (int) argv[3].value, MemoryHelper.readShortAt(engine, srcBase, (int) argv[1].value));
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -92,7 +92,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int srcBase = MemoryHelper.registerBase((int) argv[0].value);
             int dstBase = MemoryHelper.registerBase((int) argv[2].value);
-            MemoryHelper.writeIntAt(engine.memory, dstBase, (int) argv[3].value, MemoryHelper.readIntAt(engine.memory, srcBase, (int) argv[1].value));
+            MemoryHelper.writeIntAt(engine, dstBase, (int) argv[3].value, MemoryHelper.readIntAt(engine, srcBase, (int) argv[1].value));
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE),
@@ -105,7 +105,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int srcBase = MemoryHelper.registerBase((int) argv[0].value);
             int dstBase = MemoryHelper.registerBase((int) argv[1].value);
-            MemoryHelper.writeLong(engine.memory, dstBase, MemoryHelper.readLong(engine.memory, srcBase));
+            MemoryHelper.writeLong(engine, dstBase, MemoryHelper.readLong(engine, srcBase));
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE)
@@ -116,7 +116,7 @@ public class RegisterManipulation { // TODO: Replace 8/16/32/64 with a length op
         (engine, argv) -> {
             int base = MemoryHelper.registerBase((int) argv[0].value);
             int word = (int) argv[1].value;
-            MemoryHelper.writeIntAt(engine.memory, base, word, engine.ip);
+            MemoryHelper.writeIntAt(engine, base, word, engine.ip);
         },
         new Argument(Argument.Type.BYTE),
         new Argument(Argument.Type.BYTE)
